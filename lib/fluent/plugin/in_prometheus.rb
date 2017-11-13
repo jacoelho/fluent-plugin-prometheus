@@ -29,6 +29,7 @@ module Fluent::Plugin
         AccessLog: [],
       )
       @server.mount(@metrics_path, MonitorServlet, self)
+      @server.mount("/", FallbackServlet, self)
       thread_create(:in_prometheus) do
         @server.start
       end
@@ -40,6 +41,16 @@ module Fluent::Plugin
         @server = nil
       end
       super
+    end
+
+    class FallbackServlet < WEBrick::HTTPServlet::AbstractServlet
+      def do_GET(req, res)
+        res.status = 404
+        res['Content-Type'] = 'text/plain'
+        res.body = 'not found'
+      end
+
+      alias :do_POST :do_GET
     end
 
     class MonitorServlet < WEBrick::HTTPServlet::AbstractServlet
